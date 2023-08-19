@@ -32,15 +32,23 @@ type UseBridgeResult = {
 
 export function useBridge(opts: UseBridgeOpts): UseBridgeResult {
   return {
-    bridgeToken: async (
+    bridgeETH: async (
       amount: number,
       sourceSigner: SignerLike,
       recipient?: string
     ) => {
-      return bridgeToken(opts.fromChain, opts.toChain, amount, recipient);
+      return bridgeToken(
+        opts.fromChain,
+        opts.toChain,
+        amount,
+        recipient,
+        "test_asset"
+      );
     },
-
-    bridgeERC20: async (_: string, _: string, _: SignerLike) => "TODO",
+    bridgeERC20: async (a: string, b: number, c: SignerLike) => {
+      console.log(a, b, c);
+      return "";
+    },
   };
 }
 
@@ -48,24 +56,26 @@ async function bridgeToken(
   fromChain: string,
   toChain: string,
   amount: number,
-  recipient: string,
+  recipient: string | undefined,
   asset: string
 ): Promise<string> {
   if (isAnyMainnet(fromChain)) {
     // return depositETH
-    if (isNative) {
+    if (true) {
       return bridgeNativeMainnet(fromChain, toChain, amount, recipient, asset);
-    } else {
-      return bridgeERC20Mainnet(fromChain, toChain, amount, recipient, asset);
     }
+
+    return bridgeERC20Mainnet(fromChain, toChain, amount, recipient, asset);
   }
+
+  return "";
 }
 
 async function bridgeERC20Mainnet(
   fromChain: string,
   toChain: string,
   amount: number,
-  recipient: string,
+  recipient: string | undefined,
   asset: string
 ): Promise<string> {
   const sdk = new AxelarAssetTransfer({ environment: Environment.MAINNET });
@@ -97,7 +107,7 @@ async function bridgeNativeMainnet(
   fromChainNetwork: string,
   toChainNetwork: string,
   amount: number,
-  recipient: string,
+  recipient: string | undefined,
   asset: string
 ) {
   const sdk = new AxelarAssetTransfer({ environment: Environment.MAINNET });

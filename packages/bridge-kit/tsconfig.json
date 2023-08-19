@@ -1,18 +1,20 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es2015",
+    "module": "ESNext",
+    "target": "ES2019",
     "declaration": true,
-    "outDir": "./dist",
+    "declarationDir": "dist",
+    "outDir": "dist",
     "esModuleInterop": true,
+    "moduleResolution": "node",
     "skipLibCheck": true,
-    "jsx": "preserve"
+    "rootDir": "src",
+    "jsx": "react",
+    "isolatedModules": true,
+    "preserveSymlinks": true,
+    "strict": true,
+    "resolveJsonModule": true
   },
   "include": ["src/**/*"],
-  "exclude": [
-    "node_modules",
-    "**/dist/**/*",
-    "**/__tests__/**/*",
-    "**/__mocks__/**/*"
-  ]
+  "exclude": ["node_modules", "**/dist/**/*", "**/__tests__/**/*"]
 }
