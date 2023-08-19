@@ -1,31 +1,22 @@
 {
-  "name": "bridgekit",
+  "name": "bridge-kit",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/cjs/index.js",
-  "module": "dist/esm/index.js",
+  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "rollup": "rollup -c"
+    "build": "lerna run build",
+    "test": "lerna run --stream test",
+    "release": "lerna publish"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^25.0.4",
-    "@rollup/plugin-node-resolve": "^15.2.0",
-    "@rollup/plugin-typescript": "^11.1.2",
-    "@types/react": "^18.2.20",
-    "react": "^18.2.0",
-    "rollup": "^3.28.0",
-    "rollup-plugin-dts": "^6.0.0",
+    "@types/node": "^20.5.0",
+    "lerna": "^7.1.5",
     "typescript": "^5.1.6"
   },
-  "files": [
-    "dist"
-  ],
-  "types": "dist/index.d.ts",
-  "dependencies": {
-    "tslib": "^2.6.1"
-  }
+  "workspaces": [
+    "packages/*"
+  ]
 }

@@ -1,0 +1,26 @@
+{
+  "name": "bridge-kit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@eth-optimism/sdk": "^3.1.1",
+    "viem": "^1.6.0",
+    "wagmi": "^1.3.10"
+  },
+  "peerDependencies": {
+    "@eth-optimism/sdk": "^3.1.1",
+    "viem": "^1.6.0",
+    "wagmi": "^1.3.10"
+  },
+  "dependencies": {
+    "@axelar-network/axelarjs-sdk": "^0.13.5",
+    "ethers": "^5.7.2"
+  }
+}
