@@ -8,13 +8,12 @@
     "esModuleInterop": true,
     "moduleResolution": "node",
     "skipLibCheck": true,
-    "rootDir": "src",
     "jsx": "react",
     "isolatedModules": true,
     "preserveSymlinks": true,
     "strict": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "**/dist/**/*", "**/__tests__/**/*"]
+  "exclude": ["node_modules", "src/**/*.test.tsx", "src/**/*.test.ts"],
+  "include": ["src", "assets.d.ts"]
 }

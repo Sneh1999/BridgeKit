@@ -3,7 +3,7 @@ import { BridgeButton } from "bridgekit";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+    <main className="flex flex-col h-screen items-center justify-center">
       <BridgeButton />
     </main>
   );
