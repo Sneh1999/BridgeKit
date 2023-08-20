@@ -266,7 +266,10 @@ export const ModalContent: React.FC = () => {
                   : routeData &&
                     routeData.estimate &&
                     routeData.estimate.toAmount
-                  ? `~${formatUnits(BigInt(routeData.estimate.toAmount), 18)}`
+                  ? `~${formatUnits(
+                      BigInt(routeData.estimate.toAmount),
+                      CHAIN_TOKENS[toChain][toToken]!.decimals
+                    )}`
                   : "0.0"
               }
             />
@@ -307,7 +310,10 @@ export const ModalContent: React.FC = () => {
         <div className="flex flex-col gap-2 font-medium text-sm">
           <span>
             Minimum Amount Received:{" "}
-            {formatUnits(BigInt(routeData.estimate.toAmountMin), 18).toString()}{" "}
+            {formatUnits(
+              BigInt(routeData.estimate.toAmountMin),
+              routeData.params.toToken.decimals
+            ).toString()}{" "}
             {toToken}
           </span>
           <span>
@@ -320,6 +326,12 @@ export const ModalContent: React.FC = () => {
           </span>
           <span>
             Estimated Time: ~{routeData.estimate.estimatedRouteDuration} minutes
+          </span>
+          <span className="text-xs font-normal text-muted-foreground">
+            Bridging transactions require that your transaction on the source
+            chain is finalized before it can be processed on the destination
+            chain. The estimated time provided is just an estimate, and may vary
+            slightly depending on network conditions.
           </span>
         </div>
       )}
