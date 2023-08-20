@@ -21,13 +21,3 @@ export default function Home() {
     </main>
   );
 }
-
-export function YourComponent() {
-  // ... Your Code
-
-  return (
-    //
-    <BridgeButton />
-    //
-  );
-}

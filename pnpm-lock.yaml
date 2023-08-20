@@ -115,7 +115,7 @@ importers:
         specifier: 10.4.15
         version: 10.4.15(postcss@8.4.28)
       bridgekit:
-        specifier: workspace:^
+        specifier: ^1.0.2
         version: link:../bridge-kit
       eslint:
         specifier: 8.47.0
