@@ -11,12 +11,25 @@ import {
   goerli,
   base,
   baseGoerli,
+  lineaTestnet,
+  linea,
 } from "wagmi/chains";
 import { publicProvider } from "wagmi/providers/public";
 import { ReactNode } from "react";
 
 const { chains, publicClient } = configureChains(
-  [mainnet, polygon, optimism, arbitrum, zora, goerli, base, baseGoerli],
+  [
+    mainnet,
+    polygon,
+    optimism,
+    arbitrum,
+    zora,
+    goerli,
+    base,
+    baseGoerli,
+    lineaTestnet,
+    linea,
+  ],
   [publicProvider()]
 );
 const { connectors } = getDefaultWallets({

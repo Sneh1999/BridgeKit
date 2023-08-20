@@ -1,4 +1,4 @@
-import { ChainData, TokenData } from "@0xsquid/sdk";
+import { TokenData } from "@0xsquid/sdk";
 
 export type MainnetChainName =
   | "ethereum"
@@ -88,7 +88,6 @@ export const CHAIN_TOKENS: Record<
       logoURI:
         "https://tokens.1inch.io/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.png",
       coingeckoId: "ethereum",
-      commonKey: "weth-wei",
     },
     USDC: {
       name: "USDCoin",
@@ -99,7 +98,6 @@ export const CHAIN_TOKENS: Record<
       logoURI:
         "https://raw.githubusercontent.com/axelarnetwork/axelar-docs/main/public/images/assets/usdc.svg",
       coingeckoId: "usd-coin",
-      commonKey: "uusdc",
     },
     DAI: {
       name: "Dai Stablecoin",
@@ -110,7 +108,6 @@ export const CHAIN_TOKENS: Record<
       logoURI:
         "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png",
       coingeckoId: "dai",
-      commonKey: "dai-wei",
     },
   },
   optimism: {

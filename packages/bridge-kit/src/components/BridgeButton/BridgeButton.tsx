@@ -2,7 +2,8 @@
 
 import { RouteData, StatusResponse } from "@0xsquid/sdk";
 import React, { ChangeEvent, useEffect, useState } from "react";
-import { formatUnits, parseEther, parseUnits } from "viem";
+import { formatUnits, parseEther } from "viem";
+import { useNetwork, useSwitchNetwork } from "wagmi";
 import { useBridge } from "../../hooks";
 import {
   AssetName,
@@ -22,29 +23,24 @@ import {
 } from "../Dialog";
 import { Input } from "../Input";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "../Select";
-import { useAccount, useNetwork, useSwitchNetwork } from "wagmi";
 
 export const BridgeButton: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-
   return (
-    <>
-      <Dialog>
-        <DialogTrigger>
-          <div className={buttonVariants()}>Bridge</div>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>🚀 BridgeKit</DialogTitle>
-          </DialogHeader>
-          <ModalContent />
-        </DialogContent>
-      </Dialog>
-    </>
+    <Dialog>
+      <DialogTrigger>
+        <div className={buttonVariants()}>Bridge</div>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>🚀 BridgeKit</DialogTitle>
+        </DialogHeader>
+        <ModalContent />
+      </DialogContent>
+    </Dialog>
   );
 };
 
-export const ModalContent: React.FC = () => {
+const ModalContent: React.FC = () => {
   const { switchNetwork } = useSwitchNetwork();
   const { chain } = useNetwork();
 
@@ -82,19 +78,27 @@ export const ModalContent: React.FC = () => {
   }
 
   async function handleBridgeClick() {
-    setIsBridging(true);
-    const response = await bridgeToken();
-    setTxHash(response.txHash);
-    setRequestId(response.requestId!);
+    try {
+      setIsBridging(true);
+      const response = await bridgeToken();
+      setTxHash(response.txHash);
+      setRequestId(response.requestId!);
+    } catch (e) {
+      console.error(e);
+      setIsBridging(false);
+    }
   }
 
   async function fetchTxnStatus(txHash: string, requestId: string) {
-    console.log({ txHash, requestId });
-    const status = await getTransactionStatus(txHash, requestId);
-    console.log({ status });
-    setTxnStatus(status);
+    try {
+      const status = await getTransactionStatus(txHash, requestId);
+      setTxnStatus(status);
 
-    if (status.squidTransactionStatus === "confirmed") {
+      if (status.squidTransactionStatus === "confirmed") {
+        setIsBridging(false);
+      }
+    } catch (e) {
+      console.error(e);
       setIsBridging(false);
     }
   }

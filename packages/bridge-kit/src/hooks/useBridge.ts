@@ -9,6 +9,11 @@ import {
   ChainName,
 } from "../lib/chains";
 import { walletClientToSigner } from "./useEthersSigner";
+import {
+  SQUID_INTEGRATOR_ID,
+  SQUID_MAINNET_BASE_URL,
+  SQUID_TESTNET_BASE_URL,
+} from "./constants";
 
 type UseBridgeOpts = {
   fromChain: ChainName;
@@ -37,15 +42,12 @@ export function useBridge(opts: UseBridgeOpts): UseBridgeResult {
   const { data: walletClient } = useWalletClient();
   const { address } = useAccount();
 
-  const squidMainnetBaseUrl = "https://api.squidrouter.com";
-  const squidTestnetBaseUrl = "https://testnet.api.squidrouter.com";
-
   const isMainnet = isAnyMainnet(opts.fromChain) && isAnyMainnet(opts.toChain);
 
   const squid = useMemo(() => {
     return new Squid({
-      baseUrl: isMainnet ? squidMainnetBaseUrl : squidTestnetBaseUrl,
-      integratorId: "BridgeKit-sdk",
+      baseUrl: isMainnet ? SQUID_MAINNET_BASE_URL : SQUID_TESTNET_BASE_URL,
+      integratorId: SQUID_INTEGRATOR_ID,
     });
   }, [isMainnet]);
 
@@ -95,7 +97,7 @@ export function useBridge(opts: UseBridgeOpts): UseBridgeResult {
       return squid.getStatus({
         transactionId: txHash,
         requestId,
-        integratorId: "BridgeKit-sdk",
+        integratorId: SQUID_INTEGRATOR_ID,
       });
     },
   };
@@ -132,7 +134,7 @@ async function bridgeToken(
     signer,
     route,
   });
-
+  await txn.wait();
   return {
     txHash: txn.hash,
     requestId,
@@ -162,7 +164,7 @@ async function getSquidParams(
     (isAnyMainnet(fromChain) && isAnyTestnet(toChain)) ||
     (isAnyMainnet(toChain) && isAnyTestnet(fromChain))
   ) {
-    throw new Error("Transfer not supported");
+    throw new Error("Cannot bridge between mainnet and testnet");
   }
 
   if (recipient && !isAddress(recipient)) {
