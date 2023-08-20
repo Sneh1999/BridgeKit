@@ -16,6 +16,7 @@ export default [
       },
     ],
     plugins: [
+      resolve(),
       postcss({
         config: {
           path: "./postcss.config.js",
@@ -25,7 +26,6 @@ export default [
         minimize: true,
       }),
       preserveDirectives(),
-      resolve(),
       commonjs(),
       typescript({ tsconfig: "./tsconfig.json" }),
     ],

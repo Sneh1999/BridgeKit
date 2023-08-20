@@ -1,77 +1,102 @@
+import { RouteData, Squid, StatusResponse } from "@0xsquid/sdk";
+import { useMemo } from "react";
+import { WalletClient, isAddress } from "viem";
+import { useAccount, useWalletClient } from "wagmi";
 import {
-  AxelarAssetTransfer,
-  AxelarQueryAPI,
-  Environment,
-} from "@axelar-network/axelarjs-sdk";
-import { PublicClient, WalletClient, getContract, isAddress } from "viem";
-import { erc20ABI, usePublicClient, useWalletClient } from "wagmi";
-import {
-  ASSET_DENOMS,
   AssetName,
-  CHAIN_NAME_TO_AXL_CHAIN_ID,
   CHAIN_NAME_TO_EVM_CHAIN_ID,
-  CHAIN_NAME_TO_GATEWAY_ADDRESS,
+  CHAIN_TOKENS,
   ChainName,
-  MAINNET_CHAINS,
-  TESTNET_CHAINS,
 } from "../lib/chains";
-import { AXELAR_GATEWAY_ABI } from "../lib/gatewayAbi";
-import {
-  SendTokenStatus,
-  getCrossChainTxnStatus,
-} from "../lib/getCrossChainTxnStatus";
+import { walletClientToSigner } from "./useEthersSigner";
 
 type UseBridgeOpts = {
   fromChain: ChainName;
   toChain: ChainName;
-  amount: bigint;
+  fromAsset: AssetName;
+  toAsset: AssetName;
+  fromAmount: bigint;
   recipient?: string;
-  asset: AssetName;
 };
 
 type UseBridgeResult = {
-  bridgeToken: () => Promise<string>;
+  bridgeToken: () => Promise<BridgeResponse>;
+  getRoute: () => Promise<RouteData>;
   getTransactionStatus: (
     txHash: string,
-    network: "testnet" | "mainnet"
-  ) => Promise<SendTokenStatus>;
+    requestId: string
+  ) => Promise<StatusResponse>;
+};
+
+type BridgeResponse = {
+  txHash: string;
+  requestId: string | undefined;
 };
 
 export function useBridge(opts: UseBridgeOpts): UseBridgeResult {
   const { data: walletClient } = useWalletClient();
-  const { data: publicClient } = usePublicClient({
-    chainId: CHAIN_NAME_TO_EVM_CHAIN_ID[opts.fromChain],
-  });
+  const { address } = useAccount();
+
+  const squidMainnetBaseUrl = "https://api.squidrouter.com";
+  const squidTestnetBaseUrl = "https://testnet.api.squidrouter.com";
 
   const isMainnet = isAnyMainnet(opts.fromChain) && isAnyMainnet(opts.toChain);
-  const assetTransferSDK = new AxelarAssetTransfer({
-    environment: isMainnet ? Environment.MAINNET : Environment.TESTNET,
-  });
 
-  const querySDK = new AxelarQueryAPI({
-    environment: isMainnet ? Environment.MAINNET : Environment.TESTNET,
-  });
+  const squid = useMemo(() => {
+    return new Squid({
+      baseUrl: isMainnet ? squidMainnetBaseUrl : squidTestnetBaseUrl,
+      integratorId: "BridgeKit-sdk",
+    });
+  }, [isMainnet]);
 
   return {
     bridgeToken: async () => {
       return bridgeToken(
         opts.fromChain,
         opts.toChain,
-        opts.amount,
+        opts.fromAsset,
+        opts.toAsset,
+        opts.fromAmount,
         opts.recipient,
-        opts.asset,
+        address,
         walletClient,
-        publicClient,
-        assetTransferSDK,
-        querySDK
+        squid
       );
     },
 
-    getTransactionStatus: async (
-      txHash: string,
-      network: "testnet" | "mainnet"
-    ) => {
-      return getCrossChainTxnStatus(txHash, network);
+    getRoute: async () => {
+      if (!squid.initialized) {
+        await squid.init();
+      }
+
+      const squidParams = await getSquidParams(
+        opts.fromChain,
+        opts.toChain,
+        opts.fromAsset,
+        opts.toAsset,
+        opts.fromAmount,
+        opts.recipient,
+        address
+      );
+
+      const { route } = await squid.getRoute({
+        ...squidParams,
+        quoteOnly: true,
+      });
+
+      return route;
+    },
+
+    getTransactionStatus: async (txHash: string, requestId: string) => {
+      if (!squid.initialized) {
+        await squid.init();
+      }
+
+      return squid.getStatus({
+        transactionId: txHash,
+        requestId,
+        integratorId: "BridgeKit-sdk",
+      });
     },
   };
 }
@@ -79,113 +104,39 @@ export function useBridge(opts: UseBridgeOpts): UseBridgeResult {
 async function bridgeToken(
   fromChain: ChainName,
   toChain: ChainName,
-  amount: bigint,
+  fromAsset: AssetName,
+  toAsset: AssetName,
+  fromAmount: bigint,
   recipient: string | undefined,
-  asset: AssetName,
+  address: string,
   walletClient: WalletClient,
-  publicClient: PublicClient,
-  assetTransferSdk: AxelarAssetTransfer,
-  querySdk: AxelarQueryAPI
-): Promise<string> {
-  if (
-    (isAnyMainnet(fromChain) && isAnyTestnet(toChain)) ||
-    (isAnyMainnet(toChain) && isAnyTestnet(fromChain))
-  ) {
-    throw new Error("Transfer not supported");
+  squid: Squid
+): Promise<BridgeResponse> {
+  if (!squid.initialized) {
+    await squid.init();
   }
 
-  const axlFromChain = CHAIN_NAME_TO_AXL_CHAIN_ID[fromChain];
-  const axlToChain = CHAIN_NAME_TO_AXL_CHAIN_ID[toChain];
-
-  if (recipient && !isAddress(recipient)) {
-    throw new Error("Invalid recipient address");
-  }
-
-  const [address] = await walletClient.getAddresses();
-
-  const assetDenomFrom = ASSET_DENOMS[asset][fromChain];
-  const assetDenomTo = ASSET_DENOMS[asset][toChain];
-
-  if (!assetDenomFrom || !assetDenomTo) {
-    throw new Error(
-      `Asset ${asset} not supported on ${fromChain} or ${toChain}`
-    );
-  }
-
-  const fees = await querySdk.getTransferFee(
-    axlFromChain,
-    axlToChain,
-    assetDenomFrom,
-    Number(amount.toString())
+  const squidParams = await getSquidParams(
+    fromChain,
+    toChain,
+    fromAsset,
+    toAsset,
+    fromAmount,
+    recipient,
+    address
   );
-  const totalAmount = amount + BigInt(fees.fee.amount);
+  const { route, requestId, integratorId } = await squid.getRoute(squidParams);
 
-  if (isNativeTokenTransfer(asset, fromChain)) {
-    const depositAddress =
-      await assetTransferSdk.getDepositAddressForNativeWrap(
-        axlFromChain,
-        axlToChain,
-        recipient ?? address
-      );
+  const signer = walletClientToSigner(walletClient);
+  const txn = await squid.executeRoute({
+    signer,
+    route,
+  });
 
-    if (!depositAddress) throw new Error(`Could not get deposit address`);
-
-    const hash = await walletClient.sendTransaction({
-      account: address,
-      to: depositAddress,
-      value: totalAmount,
-      chain: null,
-    });
-
-    return hash;
-  } else {
-    const tokenSymbolForDenom = await querySdk.getSymbolFromDenom(
-      assetDenomFrom,
-      axlFromChain.toLowerCase()
-    );
-
-    if (!tokenSymbolForDenom)
-      throw new Error(`Could not get token symbol for denom ${assetDenomFrom}`);
-
-    const depositAddress =
-      await assetTransferSdk.getOfflineDepositAddressForERC20Transfer(
-        axlFromChain,
-        axlToChain,
-        recipient ?? address,
-        "evm",
-        tokenSymbolForDenom
-      );
-
-    if (!depositAddress) throw new Error(`Could not get deposit address`);
-
-    const gatewayContract = getContract({
-      address: CHAIN_NAME_TO_GATEWAY_ADDRESS[fromChain],
-      abi: AXELAR_GATEWAY_ABI,
-      publicClient,
-    });
-
-    const erc20TokenAddress = await gatewayContract.read.tokenAddresses([
-      assetDenomFrom,
-    ]);
-
-    if (!erc20TokenAddress)
-      throw new Error(`Could not get erc20 token address`);
-    if (!isAddress(erc20TokenAddress as string))
-      throw new Error(`Invalid erc20 address`);
-
-    const erc20Contract = getContract({
-      address: erc20TokenAddress,
-      abi: erc20ABI,
-      walletClient,
-    });
-
-    const hash = await erc20Contract.write.transfer([
-      depositAddress,
-      totalAmount.toString(),
-    ]);
-
-    return hash;
-  }
+  return {
+    txHash: txn.hash,
+    requestId,
+  };
 }
 
 function isAnyMainnet(chain: ChainName) {
@@ -198,22 +149,45 @@ function isAnyTestnet(chain: ChainName) {
   return false;
 }
 
-function isNativeTokenTransfer(assetName: AssetName, fromChain: ChainName) {
-  if (assetName !== "ETH") return false;
+async function getSquidParams(
+  fromChain: ChainName,
+  toChain: ChainName,
+  fromAsset: AssetName,
+  toAsset: AssetName,
+  fromAmount: bigint,
+  recipient: string | undefined,
+  address: string
+) {
+  if (
+    (isAnyMainnet(fromChain) && isAnyTestnet(toChain)) ||
+    (isAnyMainnet(toChain) && isAnyTestnet(fromChain))
+  ) {
+    throw new Error("Transfer not supported");
+  }
 
-  const chainsWithNativeEth = [
-    "ethereum",
-    "optimism",
-    "base",
-    "arbitrum",
-    "linea",
-    "goerli",
-    "optimism-goerli",
-    "base-goerli",
-    "arbitrum-goerli",
-    "linea-goerli",
-  ];
-  if (chainsWithNativeEth.includes(fromChain)) return true;
+  if (recipient && !isAddress(recipient)) {
+    throw new Error("Invalid recipient address");
+  }
 
-  return false;
+  const assetFromData = CHAIN_TOKENS[fromChain][fromAsset];
+  const assetToData = CHAIN_TOKENS[toChain][toAsset];
+
+  if (!assetFromData)
+    throw new Error(`Asset ${fromAsset} not supported from ${fromChain}`);
+
+  if (!assetToData)
+    throw new Error(`Asset ${toAsset} not supported from ${toChain}`);
+
+  const squidParams = {
+    fromChain: CHAIN_NAME_TO_EVM_CHAIN_ID[fromChain],
+    fromToken: assetFromData.address,
+    toChain: CHAIN_NAME_TO_EVM_CHAIN_ID[toChain],
+    toToken: assetToData.address,
+    fromAmount: fromAmount.toString(),
+    toAddress: recipient ?? address,
+    slippage: 1.0,
+    enableForecall: true,
+  };
+
+  return squidParams;
 }
