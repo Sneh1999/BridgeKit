@@ -12,7 +12,7 @@ Plug-and-play React library to offer in-app cross-chain bridging and swaps to yo
 
 ## Try it out!
 
-Try out a sample app [here](https://bridgekit.vercel.app/)
+Try out a sample app [here](https://bridgekit-example.vercel.app/)
 
 ## Quick Start
 
