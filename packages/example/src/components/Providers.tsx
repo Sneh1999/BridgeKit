@@ -13,6 +13,8 @@ import {
   baseGoerli,
   lineaTestnet,
   linea,
+  optimismGoerli,
+  arbitrumGoerli,
 } from "wagmi/chains";
 import { publicProvider } from "wagmi/providers/public";
 import { ReactNode } from "react";
@@ -20,15 +22,15 @@ import { ReactNode } from "react";
 const { chains, publicClient } = configureChains(
   [
     mainnet,
-    polygon,
-    optimism,
-    arbitrum,
-    zora,
     goerli,
+    optimism,
+    optimismGoerli,
+    arbitrum,
+    arbitrumGoerli,
     base,
     baseGoerli,
-    lineaTestnet,
     linea,
+    lineaTestnet,
   ],
   [publicProvider()]
 );

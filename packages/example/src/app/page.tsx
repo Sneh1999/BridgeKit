@@ -15,7 +15,19 @@ export default function Home() {
 
   return (
     <main className="flex flex-col grow items-center justify-center">
+      {/* ... */}
       <BridgeButton />
+      {/* ... */}
     </main>
+  );
+}
+
+export function YourComponent() {
+  // ... Your Code
+
+  return (
+    //
+    <BridgeButton />
+    //
   );
 }

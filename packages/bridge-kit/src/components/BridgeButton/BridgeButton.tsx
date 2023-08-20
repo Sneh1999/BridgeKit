@@ -362,9 +362,15 @@ const ModalContent: React.FC = () => {
           <span className="text-xs font-normal text-muted-foreground">
             Bridging transactions require that your transaction on the source
             chain is finalized before it can be processed on the destination
-            chain. The estimated time provided is just an estimate, and may vary
-            slightly depending on network conditions.
+            chain.
           </span>
+          {(fromChain.includes("goerli") || toChain.includes("goerli")) && (
+            <span className="text-xs font-medium">
+              NOTE: On test networks, the estimated route duration is not
+              accurate and can vary greatly. Please refer to the status of your
+              transaction and on AxelarScan for more accurate information.
+            </span>
+          )}
         </div>
       )}
 
