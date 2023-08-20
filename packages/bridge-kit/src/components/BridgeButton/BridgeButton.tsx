@@ -1,7 +1,7 @@
 "use client";
 
 import { RouteData, StatusResponse } from "@0xsquid/sdk";
-import React, { ChangeEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, Fragment, useEffect, useState } from "react";
 import { formatUnits, parseEther } from "viem";
 import { useNetwork, useSwitchNetwork } from "wagmi";
 import { useBridge } from "../../hooks";
@@ -32,7 +32,7 @@ export const BridgeButton: React.FC = () => {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>🚀 BridgeKit</DialogTitle>
+          <DialogTitle className="text-2xl">🔗 BridgeKit</DialogTitle>
         </DialogHeader>
         <ModalContent />
       </DialogContent>
@@ -51,15 +51,23 @@ const ModalContent: React.FC = () => {
   const [toChain, setToChain] = useState<ChainName>("base-goerli");
   const [fromToken, setFromToken] = useState<AssetName>("ETH");
   const [toToken, setToToken] = useState<AssetName>("ETH");
-  const [amountToSend, setAmountToSend] = useState(0);
+  const [amountToSend, setAmountToSend] = useState("");
 
   const [routeData, setRouteData] = useState<RouteData>();
   const [txnStatus, setTxnStatus] = useState<StatusResponse>();
   const [txHash, setTxHash] = useState<string>();
   const [requestId, setRequestId] = useState<string>();
 
+  const [error, setError] = useState<string>("");
+
   function amountToSendChangeHandler(e: ChangeEvent<HTMLInputElement>) {
-    setAmountToSend(parseFloat(e.target.value));
+    let result = "";
+    for (const char of e.target.value) {
+      if ((char >= "0" && char <= "9") || char === ".") {
+        result += char;
+      }
+    }
+    setAmountToSend(result);
   }
 
   const { bridgeToken, getRoute, getTransactionStatus } = useBridge({
@@ -67,14 +75,22 @@ const ModalContent: React.FC = () => {
     toChain,
     fromAsset: fromToken,
     toAsset: toToken,
-    fromAmount: parseEther(isNaN(amountToSend) ? "0" : amountToSend.toString()),
+    fromAmount: parseEther(amountToSend === "" ? "0" : amountToSend.toString()),
   });
 
   async function fetchRouteInfo() {
-    setIsFetchingRoute(true);
-    const route = await getRoute();
-    setRouteData(route);
-    setIsFetchingRoute(false);
+    try {
+      setIsFetchingRoute(true);
+      const route = await getRoute();
+      setRouteData(route);
+    } catch (e) {
+      if (e instanceof Error) {
+        setError(e.message);
+      }
+      console.error(e);
+    } finally {
+      setIsFetchingRoute(false);
+    }
   }
 
   async function handleBridgeClick() {
@@ -83,8 +99,14 @@ const ModalContent: React.FC = () => {
       const response = await bridgeToken();
       setTxHash(response.txHash);
       setRequestId(response.requestId!);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      if (e.code) {
+        if (e.code === "ACTION_REJECTED") {
+          setError("User rejected transaction signature");
+        }
+      } else if (e.message) {
+        setError(e.message);
+      }
       setIsBridging(false);
     }
   }
@@ -94,17 +116,25 @@ const ModalContent: React.FC = () => {
       const status = await getTransactionStatus(txHash, requestId);
       setTxnStatus(status);
 
-      if (status.squidTransactionStatus === "confirmed") {
+      if (
+        status.squidTransactionStatus === "confirmed" ||
+        status.squidTransactionStatus === "success"
+      ) {
+        setIsBridging(false);
+      }
+      if (status.error) {
+        setError(status.error);
         setIsBridging(false);
       }
     } catch (e) {
       console.error(e);
-      setIsBridging(false);
     }
   }
 
   useEffect(() => {
-    if (isNaN(amountToSend) || amountToSend <= 0) return;
+    if (amountToSend === "") return;
+
+    if (Number(amountToSend) === 0) return;
 
     const timeout = setTimeout(() => {
       fetchRouteInfo();
@@ -122,9 +152,8 @@ const ModalContent: React.FC = () => {
     let interval: NodeJS.Timeout;
     fetchTxnStatus(txHash, requestId).finally(() => {
       interval = setInterval(async () => {
-        const status = await getTransactionStatus(txHash, requestId);
-        setTxnStatus(status);
-      }, 10_000);
+        await fetchTxnStatus(txHash, requestId);
+      }, 5000);
     });
 
     return () => {
@@ -218,7 +247,6 @@ const ModalContent: React.FC = () => {
         >
           <div className="flex items-center gap-2">
             <Input
-              type="number"
               placeholder="0.01"
               value={amountToSend}
               onChange={amountToSendChangeHandler}
@@ -329,7 +357,7 @@ const ModalContent: React.FC = () => {
             USD
           </span>
           <span>
-            Estimated Time: ~{routeData.estimate.estimatedRouteDuration} minutes
+            Estimated Time: ~{routeData.estimate.estimatedRouteDuration} seconds
           </span>
           <span className="text-xs font-normal text-muted-foreground">
             Bridging transactions require that your transaction on the source
@@ -343,7 +371,7 @@ const ModalContent: React.FC = () => {
       {txnStatus && (
         <div className="flex flex-col mt-4 pt-2 border-t gap-1 text-xs text-muted-foreground text-center">
           <span className="font-medium">
-            Status: {txnStatus.squidTransactionStatus}
+            Status: {txnStatus.squidTransactionStatus} - ({txnStatus.status})
           </span>
 
           {txnStatus.fromChain?.transactionId &&
@@ -355,11 +383,17 @@ const ModalContent: React.FC = () => {
 
           {txnStatus.fromChain?.transactionId &&
             !txnStatus.toChain?.transactionId && (
-              <span>
-                Your transaction has been processed on the source chain!
-                Awaiting finality on source chain to process on destination
-                chain.
-              </span>
+              <Fragment>
+                <span>
+                  Your transaction has been processed on the source chain!
+                  Awaiting finality on source chain to process on destination
+                  chain.
+                </span>
+                <span>
+                  Time: ~{txnStatus.timeSpent!.total}/
+                  {txnStatus.fromChain.chainData.estimatedRouteDuration} seconds
+                </span>
+              </Fragment>
             )}
 
           <a
@@ -370,6 +404,11 @@ const ModalContent: React.FC = () => {
             View on AxelarScan
           </a>
         </div>
+      )}
+
+      {/* add a span for error */}
+      {error && (
+        <span className="font-medium text-red-600 text-sm">Error: {error}</span>
       )}
 
       <Button
