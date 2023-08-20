@@ -1,10 +1,12 @@
 import "./globals.css";
 import "bridgekit/styles.css";
-import { BridgeKitProvider } from "bridgekit";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Providers } from "@/components/Providers";
+import { Navbar } from "@/components/Navbar";
 
-const inter = Inter({ subsets: ["latin"] });
+import { Space_Grotesk } from "next/font/google";
+
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -18,8 +20,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <BridgeKitProvider>{children}</BridgeKitProvider>
+      <body className={spaceGrotesk.className}>
+        <Providers>
+          <div className="flex flex-col min-h-screen">
+            <Navbar />
+            {children}
+          </div>
+        </Providers>
       </body>
     </html>
   );

@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { BridgeButton } from "bridgekit";
 
 export default function Home() {

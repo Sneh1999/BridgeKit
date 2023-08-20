@@ -1,144 +1,219 @@
-import optimismSdk, {
-  SignerLike,
-  SignerOrProviderLike,
-  toProvider,
-} from "@eth-optimism/sdk";
-import { providers } from "ethers";
-import { MAINNET_CHAINS } from "../lib/chains";
 import {
   AxelarAssetTransfer,
   AxelarQueryAPI,
-  CHAINS,
   Environment,
 } from "@axelar-network/axelarjs-sdk";
+import { PublicClient, WalletClient, getContract, isAddress } from "viem";
+import { erc20ABI, usePublicClient, useWalletClient } from "wagmi";
+import {
+  ASSET_DENOMS,
+  AssetName,
+  CHAIN_NAME_TO_AXL_CHAIN_ID,
+  CHAIN_NAME_TO_EVM_CHAIN_ID,
+  CHAIN_NAME_TO_GATEWAY_ADDRESS,
+  ChainName,
+  MAINNET_CHAINS,
+  TESTNET_CHAINS,
+} from "../lib/chains";
+import { AXELAR_GATEWAY_ABI } from "../lib/gatewayAbi";
+import {
+  SendTokenStatus,
+  getCrossChainTxnStatus,
+} from "../lib/getCrossChainTxnStatus";
 
 type UseBridgeOpts = {
-  fromChain: string;
-  toChain: string;
+  fromChain: ChainName;
+  toChain: ChainName;
+  amount: bigint;
+  recipient?: string;
+  asset: AssetName;
 };
 
 type UseBridgeResult = {
-  bridgeETH: (
-    amount: number,
-    sourceSigner: SignerLike,
-    recipient?: string
-  ) => Promise<string>;
-  bridgeERC20: (
-    token: string,
-    amount: number,
-    sourceSigner: SignerLike
-  ) => Promise<string>;
+  bridgeToken: () => Promise<string>;
+  getTransactionStatus: (
+    txHash: string,
+    network: "testnet" | "mainnet"
+  ) => Promise<SendTokenStatus>;
 };
 
 export function useBridge(opts: UseBridgeOpts): UseBridgeResult {
+  const { data: walletClient } = useWalletClient();
+  const { data: publicClient } = usePublicClient({
+    chainId: CHAIN_NAME_TO_EVM_CHAIN_ID[opts.fromChain],
+  });
+
+  const isMainnet = isAnyMainnet(opts.fromChain) && isAnyMainnet(opts.toChain);
+  const assetTransferSDK = new AxelarAssetTransfer({
+    environment: isMainnet ? Environment.MAINNET : Environment.TESTNET,
+  });
+
+  const querySDK = new AxelarQueryAPI({
+    environment: isMainnet ? Environment.MAINNET : Environment.TESTNET,
+  });
+
   return {
-    bridgeETH: async (
-      amount: number,
-      sourceSigner: SignerLike,
-      recipient?: string
-    ) => {
+    bridgeToken: async () => {
       return bridgeToken(
         opts.fromChain,
         opts.toChain,
-        amount,
-        recipient,
-        "test_asset"
+        opts.amount,
+        opts.recipient,
+        opts.asset,
+        walletClient,
+        publicClient,
+        assetTransferSDK,
+        querySDK
       );
     },
-    bridgeERC20: async (a: string, b: number, c: SignerLike) => {
-      console.log(a, b, c);
-      return "";
+
+    getTransactionStatus: async (
+      txHash: string,
+      network: "testnet" | "mainnet"
+    ) => {
+      return getCrossChainTxnStatus(txHash, network);
     },
   };
 }
 
 async function bridgeToken(
-  fromChain: string,
-  toChain: string,
-  amount: number,
+  fromChain: ChainName,
+  toChain: ChainName,
+  amount: bigint,
   recipient: string | undefined,
-  asset: string
+  asset: AssetName,
+  walletClient: WalletClient,
+  publicClient: PublicClient,
+  assetTransferSdk: AxelarAssetTransfer,
+  querySdk: AxelarQueryAPI
 ): Promise<string> {
-  if (isAnyMainnet(fromChain)) {
-    // return depositETH
-    if (true) {
-      return bridgeNativeMainnet(fromChain, toChain, amount, recipient, asset);
-    }
-
-    return bridgeERC20Mainnet(fromChain, toChain, amount, recipient, asset);
+  if (
+    (isAnyMainnet(fromChain) && isAnyTestnet(toChain)) ||
+    (isAnyMainnet(toChain) && isAnyTestnet(fromChain))
+  ) {
+    throw new Error("Transfer not supported");
   }
 
-  return "";
-}
+  const axlFromChain = CHAIN_NAME_TO_AXL_CHAIN_ID[fromChain];
+  const axlToChain = CHAIN_NAME_TO_AXL_CHAIN_ID[toChain];
 
-async function bridgeERC20Mainnet(
-  fromChain: string,
-  toChain: string,
-  amount: number,
-  recipient: string | undefined,
-  asset: string
-): Promise<string> {
-  const sdk = new AxelarAssetTransfer({ environment: Environment.MAINNET });
-  const axelarQuery = new AxelarQueryAPI({
-    environment: Environment.MAINNET,
-  });
-
-  const fee = await axelarQuery.getTransferFee(
-    fromChain,
-    toChain,
-    "ETH",
-    Number(amount)
-  );
-
-  const depositAddress = await sdk.getDepositAddress(
-    fromChain,
-    toChain,
-    recipient,
-    asset,
-    {
-      shouldUnwrapIntoNative: false,
-    }
-  );
-
-  return depositAddress;
-}
-
-async function bridgeNativeMainnet(
-  fromChainNetwork: string,
-  toChainNetwork: string,
-  amount: number,
-  recipient: string | undefined,
-  asset: string
-) {
-  const sdk = new AxelarAssetTransfer({ environment: Environment.MAINNET });
-  const axelarQuery = new AxelarQueryAPI({
-    environment: Environment.MAINNET,
-  });
-
-  const fee = await axelarQuery.getTransferFee(
-    fromChainNetwork,
-    toChainNetwork,
-    asset,
-    amount
-  );
-
-  const depositAddress = await sdk.getDepositAddress(
-    fromChainNetwork,
-    toChainNetwork,
-    recipient,
-    asset,
-    {
-      shouldUnwrapIntoNative: true,
-    }
-  );
-
-  return depositAddress;
-}
-
-function isAnyMainnet(chain: string) {
-  if (MAINNET_CHAINS.find((c) => c === chain)) {
-    return true;
+  if (recipient && !isAddress(recipient)) {
+    throw new Error("Invalid recipient address");
   }
+
+  const [address] = await walletClient.getAddresses();
+
+  const assetDenomFrom = ASSET_DENOMS[asset][fromChain];
+  const assetDenomTo = ASSET_DENOMS[asset][toChain];
+
+  if (!assetDenomFrom || !assetDenomTo) {
+    throw new Error(
+      `Asset ${asset} not supported on ${fromChain} or ${toChain}`
+    );
+  }
+
+  const fees = await querySdk.getTransferFee(
+    axlFromChain,
+    axlToChain,
+    assetDenomFrom,
+    Number(amount.toString())
+  );
+  const totalAmount = amount + BigInt(fees.fee.amount);
+
+  if (isNativeTokenTransfer(asset, fromChain)) {
+    const depositAddress =
+      await assetTransferSdk.getDepositAddressForNativeWrap(
+        axlFromChain,
+        axlToChain,
+        recipient ?? address
+      );
+
+    if (!depositAddress) throw new Error(`Could not get deposit address`);
+
+    const hash = await walletClient.sendTransaction({
+      account: address,
+      to: depositAddress,
+      value: totalAmount,
+      chain: null,
+    });
+
+    return hash;
+  } else {
+    const tokenSymbolForDenom = await querySdk.getSymbolFromDenom(
+      assetDenomFrom,
+      axlFromChain.toLowerCase()
+    );
+
+    if (!tokenSymbolForDenom)
+      throw new Error(`Could not get token symbol for denom ${assetDenomFrom}`);
+
+    const depositAddress =
+      await assetTransferSdk.getOfflineDepositAddressForERC20Transfer(
+        axlFromChain,
+        axlToChain,
+        recipient ?? address,
+        "evm",
+        tokenSymbolForDenom
+      );
+
+    if (!depositAddress) throw new Error(`Could not get deposit address`);
+
+    const gatewayContract = getContract({
+      address: CHAIN_NAME_TO_GATEWAY_ADDRESS[fromChain],
+      abi: AXELAR_GATEWAY_ABI,
+      publicClient,
+    });
+
+    const erc20TokenAddress = await gatewayContract.read.tokenAddresses([
+      assetDenomFrom,
+    ]);
+
+    if (!erc20TokenAddress)
+      throw new Error(`Could not get erc20 token address`);
+    if (!isAddress(erc20TokenAddress as string))
+      throw new Error(`Invalid erc20 address`);
+
+    const erc20Contract = getContract({
+      address: erc20TokenAddress,
+      abi: erc20ABI,
+      walletClient,
+    });
+
+    const hash = await erc20Contract.write.transfer([
+      depositAddress,
+      totalAmount.toString(),
+    ]);
+
+    return hash;
+  }
+}
+
+function isAnyMainnet(chain: ChainName) {
+  if (chain.includes("goerli")) return false;
+  return true;
+}
+
+function isAnyTestnet(chain: ChainName) {
+  if (chain.includes("goerli")) return true;
+  return false;
+}
+
+function isNativeTokenTransfer(assetName: AssetName, fromChain: ChainName) {
+  if (assetName !== "ETH") return false;
+
+  const chainsWithNativeEth = [
+    "ethereum",
+    "optimism",
+    "base",
+    "arbitrum",
+    "linea",
+    "goerli",
+    "optimism-goerli",
+    "base-goerli",
+    "arbitrum-goerli",
+    "linea-goerli",
+  ];
+  if (chainsWithNativeEth.includes(fromChain)) return true;
 
   return false;
 }

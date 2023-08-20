@@ -7,7 +7,9 @@
     "outDir": "dist",
     "esModuleInterop": true,
     "moduleResolution": "node",
+    "emitDeclarationOnly": true,
     "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
     "jsx": "react",
     "isolatedModules": true,
     "preserveSymlinks": true,
@@ -15,5 +17,5 @@
     "resolveJsonModule": true
   },
   "exclude": ["node_modules", "src/**/*.test.tsx", "src/**/*.test.ts"],
-  "include": ["src", "assets.d.ts"]
+  "include": ["src"]
 }

@@ -1,17 +1,43 @@
+"use client";
+
 import React from "react";
 import { useState } from "react";
-import { BridgeModal } from "../BridgeModal";
+import { Button } from "../Button";
+import { useBridge } from "../../hooks";
+import { parseEther } from "viem";
 
 export const BridgeButton: React.FC = () => {
+  const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+
+  const { bridgeToken } = useBridge({
+    fromChain: "goerli",
+    toChain: "linea-goerli",
+    amount: parseEther("0.01"),
+    asset: "ETH",
+  });
+
+  async function wrapper() {
+    try {
+      setLoading(true);
+      bridgeToken();
+    } catch (error) {
+      console.error(error);
+    }
+
+    setLoading(false);
+  }
 
   return (
     <>
-      <button className="" onClick={() => setShowModal((prev) => !prev)}>
+      <Button onClick={wrapper} isLoading={loading}>
         Bridge
-      </button>
-
-      <BridgeModal show={showModal} onClose={() => setShowModal(false)} />
+      </Button>
     </>
   );
 };
+
+//0.29381273
+
+//
+//0.293749726778076693
