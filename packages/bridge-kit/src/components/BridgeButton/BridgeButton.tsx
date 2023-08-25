@@ -87,6 +87,7 @@ const ModalContent: React.FC = () => {
       if (e instanceof Error) {
         setError(e.message);
       }
+      setRouteData(undefined);
       console.error(e);
     } finally {
       setIsFetchingRoute(false);
@@ -124,9 +125,14 @@ const ModalContent: React.FC = () => {
       }
       if (status.error) {
         setError(status.error);
+        setRouteData(undefined);
         setIsBridging(false);
       }
     } catch (e) {
+      if (e instanceof Error) {
+        setRouteData(undefined);
+        setError(e.message);
+      }
       console.error(e);
     }
   }
@@ -173,7 +179,10 @@ const ModalContent: React.FC = () => {
       <div className="flex items-center gap-8 justify-between">
         <Select
           defaultValue="goerli"
-          onValueChange={(n) => setFromChain(n as ChainName)}
+          onValueChange={(n) => {
+            setError("");
+            setFromChain(n as ChainName);
+          }}
           disabled={isBridging}
         >
           <SelectTrigger>
@@ -206,7 +215,10 @@ const ModalContent: React.FC = () => {
 
         <Select
           defaultValue="base-goerli"
-          onValueChange={(n) => setToChain(n as ChainName)}
+          onValueChange={(n) => {
+            setError("");
+            setToChain(n as ChainName);
+          }}
           disabled={isBridging}
         >
           <SelectTrigger>

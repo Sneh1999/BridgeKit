@@ -8,7 +8,6 @@ export type MainnetChainName =
   | "linea";
 export type TestnetChainName =
   | "goerli"
-  | "optimism-goerli"
   | "base-goerli"
   | "arbitrum-goerli"
   | "linea-goerli";
@@ -56,11 +55,6 @@ export const CHAIN_DATA: Record<ChainName, MinimalChainData> = {
     name: "Base Goerli",
     chainIconURI:
       "https://raw.githubusercontent.com/axelarnetwork/axelar-satellite/main/public/assets/chains/base.logo.svg",
-  },
-  "optimism-goerli": {
-    name: "Optimism Goerli",
-    chainIconURI:
-      "https://s2.coinmarketcap.com/static/img/coins/64x64/11840.png",
   },
   "arbitrum-goerli": {
     name: "Arbitrum Goerli",
@@ -260,18 +254,6 @@ export const CHAIN_TOKENS: Record<
       coingeckoId: "dai",
     },
   },
-  "optimism-goerli": {
-    ETH: {
-      chainId: 420,
-      address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-      name: "ETH",
-      symbol: "ETH",
-      decimals: 18,
-      logoURI:
-        "https://tokens.1inch.io/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.png",
-      coingeckoId: "ethereum",
-    },
-  },
   "base-goerli": {
     ETH: {
       chainId: 84531,
@@ -324,7 +306,6 @@ export const CHAIN_NAME_TO_EVM_CHAIN_ID: Record<ChainName, number> = {
   ethereum: 1,
   goerli: 5,
   optimism: 10,
-  "optimism-goerli": 420,
   base: 8453,
   "base-goerli": 84531,
   arbitrum: 42161,
