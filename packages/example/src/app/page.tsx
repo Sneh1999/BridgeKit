@@ -16,7 +16,11 @@ export default function Home() {
   return (
     <main className="flex flex-col grow items-center justify-center">
       {/* ... */}
-      <BridgeButton />
+      <BridgeButton
+        defaultFromChain={"ethereum"}
+        defaultToChain={"base"}
+        defaultAmountToSend="0.01"
+      />
       {/* ... */}
     </main>
   );

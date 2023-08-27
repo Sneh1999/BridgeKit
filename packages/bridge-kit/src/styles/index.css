@@ -28,9 +28,9 @@
 }
 @layer base {
   * {
-    @apply border-border;
+    @apply tw-bk-border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply tw-bk-bg-background tw-bk-text-foreground;
   }
 }

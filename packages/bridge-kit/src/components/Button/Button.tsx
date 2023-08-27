@@ -4,18 +4,20 @@ import * as React from "react";
 import { cn } from "../../lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center gap-2 justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "tw-bk-inline-flex tw-bk-items-center tw-bk-gap-2 tw-bk-justify-center tw-bk-rounded-md tw-bk-text-sm tw-bk-font-medium tw-bk-ring-offset-background tw-bk-transition-colors focus-visible:tw-bk-outline-none focus-visible:tw-bk-ring-2 focus-visible:tw-bk-ring-ring focus-visible:tw-bk-ring-offset-2 disabled:tw-bk-pointer-events-none disabled:tw-bk-opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80",
-        accent: "bg-accent text-accent-foreground hover:bg-accent/80",
+        default:
+          "tw-bk-bg-primary tw-bk-text-primary-foreground hover:tw-bk-bg-primary/80",
+        accent:
+          "tw-bk-bg-accent tw-bk-text-accent-foreground hover:tw-bk-bg-accent/80",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        default: "tw-bk-h-10 tw-bk-px-4 tw-bk-py-2",
+        sm: "tw-bk-h-9 tw-bk-rounded-md tw-bk-px-3",
+        lg: "tw-bk-h-11 tw-bk-rounded-md tw-bk-px-8",
+        icon: "tw-bk-h-10 tw-bk-w-10",
       },
     },
     defaultVariants: {
@@ -40,7 +42,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {isLoading ? (
-          <div className="animate-spin rounded-full h-4 w-4 border-4 border-gray-300 border-l-white items-center justify-center mx-auto" />
+          <div className="tw-bk-animate-spin tw-bk-rounded-full tw-bk-h-4 tw-bk-w-4 tw-bk-border-4 tw-bk-border-gray-300 tw-bk-border-l-white tw-bk-items-center tw-bk-justify-center tw-bk-mx-auto" />
         ) : (
           props.children
         )}

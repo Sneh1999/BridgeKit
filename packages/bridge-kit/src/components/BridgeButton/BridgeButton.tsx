@@ -24,7 +24,15 @@ import {
 import { Input } from "../Input";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "../Select";
 
-export const BridgeButton: React.FC = () => {
+export interface BridgeButtonProps {
+  defaultFromChain?: ChainName;
+  defaultToChain?: ChainName;
+  defaultFromToken?: AssetName;
+  defaultToToken?: AssetName;
+  defaultAmountToSend?: string;
+}
+
+export const BridgeButton: React.FC<BridgeButtonProps> = (opts) => {
   return (
     <Dialog>
       <DialogTrigger>
@@ -32,26 +40,32 @@ export const BridgeButton: React.FC = () => {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-2xl">🔗 BridgeKit</DialogTitle>
+          <DialogTitle className="tw-bk-text-2xl">🔗 BridgeKit</DialogTitle>
         </DialogHeader>
-        <ModalContent />
+        <ModalContent {...opts} />
       </DialogContent>
     </Dialog>
   );
 };
 
-const ModalContent: React.FC = () => {
+const ModalContent: React.FC<BridgeButtonProps> = ({
+  defaultFromChain = "goerli",
+  defaultToChain = "base-goerli",
+  defaultFromToken = "ETH",
+  defaultToToken = "ETH",
+  defaultAmountToSend = "",
+}) => {
   const { switchNetwork } = useSwitchNetwork();
   const { chain } = useNetwork();
 
   const [isFetchingRoute, setIsFetchingRoute] = useState(false);
   const [isBridging, setIsBridging] = useState(false);
 
-  const [fromChain, setFromChain] = useState<ChainName>("goerli");
-  const [toChain, setToChain] = useState<ChainName>("base-goerli");
-  const [fromToken, setFromToken] = useState<AssetName>("ETH");
-  const [toToken, setToToken] = useState<AssetName>("ETH");
-  const [amountToSend, setAmountToSend] = useState("");
+  const [fromChain, setFromChain] = useState<ChainName>(defaultFromChain);
+  const [toChain, setToChain] = useState<ChainName>(defaultToChain);
+  const [fromToken, setFromToken] = useState<AssetName>(defaultFromToken);
+  const [toToken, setToToken] = useState<AssetName>(defaultToToken);
+  const [amountToSend, setAmountToSend] = useState(defaultAmountToSend);
 
   const [routeData, setRouteData] = useState<RouteData>();
   const [txnStatus, setTxnStatus] = useState<StatusResponse>();
@@ -174,9 +188,9 @@ const ModalContent: React.FC = () => {
   }, [fromChain]);
 
   return (
-    <div className="flex flex-col gap-2 w-full">
-      <span className="font-medium pt-4">Network</span>
-      <div className="flex items-center gap-8 justify-between">
+    <div className="tw-bk-flex tw-bk-flex-col tw-bk-gap-2 tw-bk-w-full">
+      <span className="tw-bk-font-medium tw-bk-pt-4">Network</span>
+      <div className="tw-bk-flex tw-bk-items-center tw-bk-gap-8 tw-bk-justify-between">
         <Select
           defaultValue="goerli"
           onValueChange={(n) => {
@@ -186,11 +200,11 @@ const ModalContent: React.FC = () => {
           disabled={isBridging}
         >
           <SelectTrigger>
-            <div className="flex items-center gap-2">
+            <div className="tw-bk-flex tw-bk-items-center tw-bk-gap-2">
               <img
                 src={CHAIN_DATA[fromChain].chainIconURI}
                 alt={CHAIN_DATA[fromChain].name}
-                className="w-4 h-4"
+                className="tw-bk-w-4 tw-bk-h-4"
               />
               <span>{CHAIN_DATA[fromChain].name}</span>
             </div>
@@ -198,14 +212,14 @@ const ModalContent: React.FC = () => {
           <SelectContent>
             {Object.entries(CHAIN_DATA).map(([chainName, chainData]) => (
               <SelectItem
-                className="flex gap-1 items-center"
+                className="tw-bk-flex tw-bk-gap-1 tw-bk-items-center"
                 key={`from-${chainName}`}
                 value={chainName}
               >
                 <img
                   src={chainData.chainIconURI}
                   alt={chainName}
-                  className="w-4 h-4"
+                  className="tw-bk-w-4 tw-bk-h-4"
                 />
                 <span>{chainData.name}</span>
               </SelectItem>
@@ -222,11 +236,11 @@ const ModalContent: React.FC = () => {
           disabled={isBridging}
         >
           <SelectTrigger>
-            <div className="flex items-center gap-2">
+            <div className="tw-bk-flex tw-bk-items-center tw-bk-gap-2">
               <img
                 src={CHAIN_DATA[toChain].chainIconURI}
                 alt={CHAIN_DATA[toChain].name}
-                className="w-4 h-4"
+                className="tw-bk-w-4 tw-bk-h-4"
               />
               <span>{CHAIN_DATA[toChain].name}</span>
             </div>
@@ -234,14 +248,14 @@ const ModalContent: React.FC = () => {
           <SelectContent>
             {Object.entries(CHAIN_DATA).map(([chainName, chainData]) => (
               <SelectItem
-                className="flex gap-1 items-center"
+                className="tw-bk-flex tw-bk-gap-1 tw-bk-items-center"
                 key={`to-${chainName}`}
                 value={chainName}
               >
                 <img
                   src={chainData.chainIconURI}
                   alt={chainName}
-                  className="w-4 h-4"
+                  className="tw-bk-w-4 tw-bk-h-4"
                 />
                 <span>{chainData.name}</span>
               </SelectItem>
@@ -250,14 +264,14 @@ const ModalContent: React.FC = () => {
         </Select>
       </div>
 
-      <span className="font-medium pt-4">Token</span>
-      <div className="flex items-center gap-8 justify-between">
+      <span className="tw-bk-font-medium tw-bk-pt-4">Token</span>
+      <div className="tw-bk-flex tw-bk-items-center tw-bk-gap-8 tw-bk-justify-between">
         <Select
           defaultValue="ETH"
           onValueChange={(n) => setFromToken(n as AssetName)}
           disabled={isBridging}
         >
-          <div className="flex items-center gap-2">
+          <div className="tw-bk-flex tw-bk-items-center tw-bk-gap-2">
             <Input
               placeholder="0.01"
               value={amountToSend}
@@ -265,11 +279,11 @@ const ModalContent: React.FC = () => {
               disabled={isBridging}
             />
             <SelectTrigger>
-              <div className="flex items-center gap-2">
+              <div className="tw-bk-flex tw-bk-items-center tw-bk-gap-2">
                 <img
                   src={CHAIN_TOKENS[fromChain][fromToken]?.logoURI}
                   alt={CHAIN_TOKENS[fromChain][fromToken]?.symbol}
-                  className="w-4 h-4"
+                  className="tw-bk-w-4 tw-bk-h-4"
                 />
                 <span>{CHAIN_TOKENS[fromChain][fromToken]?.symbol}</span>
               </div>
@@ -278,14 +292,14 @@ const ModalContent: React.FC = () => {
               {Object.entries(CHAIN_TOKENS[fromChain]).map(
                 ([assetName, tokenData]) => (
                   <SelectItem
-                    className="flex gap-1 items-center"
+                    className="tw-bk-flex tw-bk-gap-1 tw-bk-items-center"
                     key={`from-${assetName}`}
                     value={assetName}
                   >
                     <img
                       src={tokenData.logoURI}
                       alt={assetName}
-                      className="w-4 h-4"
+                      className="tw-bk-w-4 tw-bk-h-4"
                     />
                     <span>{tokenData.symbol}</span>
                   </SelectItem>
@@ -300,7 +314,7 @@ const ModalContent: React.FC = () => {
           onValueChange={(n) => setToToken(n as AssetName)}
           disabled={isBridging}
         >
-          <div className="flex items-center gap-2">
+          <div className="tw-bk-flex tw-bk-items-center tw-bk-gap-2">
             <Input
               placeholder="0.0"
               disabled
@@ -318,11 +332,11 @@ const ModalContent: React.FC = () => {
               }
             />
             <SelectTrigger>
-              <div className="flex items-center gap-2">
+              <div className="tw-bk-flex tw-bk-items-center tw-bk-gap-2">
                 <img
                   src={CHAIN_TOKENS[toChain][toToken]?.logoURI}
                   alt={CHAIN_TOKENS[toChain][toToken]?.symbol}
-                  className="w-4 h-4"
+                  className="tw-bk-w-4 tw-bk-h-4"
                 />
 
                 <span>{CHAIN_TOKENS[toChain][toToken]?.symbol}</span>
@@ -332,14 +346,14 @@ const ModalContent: React.FC = () => {
               {Object.entries(CHAIN_TOKENS[toChain]).map(
                 ([assetName, tokenData]) => (
                   <SelectItem
-                    className="flex gap-1 items-center"
+                    className="tw-bk-flex tw-bk-gap-1 tw-bk-items-center"
                     key={`to-${assetName}`}
                     value={assetName}
                   >
                     <img
                       src={tokenData.logoURI}
                       alt={assetName}
-                      className="w-4 h-4"
+                      className="tw-bk-w-4 tw-bk-h-4"
                     />
                     <span>{tokenData.symbol}</span>
                   </SelectItem>
@@ -351,7 +365,7 @@ const ModalContent: React.FC = () => {
       </div>
 
       {routeData && !isFetchingRoute && (
-        <div className="flex flex-col gap-2 font-medium text-sm">
+        <div className="tw-bk-flex tw-bk-flex-col tw-bk-gap-2 tw-bk-font-medium tw-bk-text-sm">
           <span>
             Minimum Amount Received:{" "}
             {formatUnits(
@@ -371,13 +385,13 @@ const ModalContent: React.FC = () => {
           <span>
             Estimated Time: ~{routeData.estimate.estimatedRouteDuration} seconds
           </span>
-          <span className="text-xs font-normal text-muted-foreground">
+          <span className="tw-bk-text-xs tw-bk-font-normal tw-bk-text-muted-foreground">
             Bridging transactions require that your transaction on the source
             chain is finalized before it can be processed on the destination
             chain.
           </span>
           {(fromChain.includes("goerli") || toChain.includes("goerli")) && (
-            <span className="text-xs font-medium">
+            <span className="tw-bk-text-xs tw-bk-font-medium">
               NOTE: On test networks, the estimated route duration is not
               accurate and can vary greatly. Please refer to the status of your
               transaction and on AxelarScan for more accurate information.
@@ -387,8 +401,8 @@ const ModalContent: React.FC = () => {
       )}
 
       {txnStatus && (
-        <div className="flex flex-col mt-4 pt-2 border-t gap-1 text-xs text-muted-foreground text-center">
-          <span className="font-medium">
+        <div className="tw-bk-flex tw-bk-flex-col tw-bk-mt-4 tw-bk-pt-2 tw-bk-border-t tw-bk-gap-1 tw-bk-text-xs tw-bk-text-muted-foreground tw-bk-text-center">
+          <span className="tw-bk-font-medium">
             Status: {txnStatus.squidTransactionStatus} - ({txnStatus.status})
           </span>
 
@@ -416,7 +430,7 @@ const ModalContent: React.FC = () => {
 
           <a
             href={txnStatus.axelarTransactionUrl}
-            className="text-blue-500 hover:text-blue-600"
+            className="tw-bk-text-blue-500 hover:tw-bk-text-blue-600"
             target="_blank"
           >
             View on AxelarScan
@@ -426,11 +440,13 @@ const ModalContent: React.FC = () => {
 
       {/* add a span for error */}
       {error && (
-        <span className="font-medium text-red-600 text-sm">Error: {error}</span>
+        <span className="tw-bk-font-medium tw-bk-text-red-600 tw-bk-text-sm">
+          Error: {error}
+        </span>
       )}
 
       <Button
-        className="mt-4"
+        className="tw-bk-mt-4"
         isLoading={isFetchingRoute || isBridging}
         disabled={isFetchingRoute || isBridging}
         onClick={handleBridgeClick}
